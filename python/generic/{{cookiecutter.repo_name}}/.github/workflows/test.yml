@@ -1,0 +1,41 @@
+name: Test
+
+on:
+  pull_request: {}
+  push:
+    branches: [main]
+    tags: ["*"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: {python_version}
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt.dev
+
+      - run: python3 -m isort --recursive --diff .
+      - run: python3 -m black --check .
+      - run: python3 -m flake8
+      - run: python3 -m mypy
+      - run: python3 -m pytest --cov --cov-fail-under=100
+
+  docker-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build docker image
+        run: docker build . -t {{cookiecutter.repo_name}}:test
+
+      - name: Smoke test docker image
+        run: |
+          docker run --rm {{cookiecutter.repo_name}}:test 10
